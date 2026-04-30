@@ -73,11 +73,28 @@ def rank_chunks(
     return [chunk for _, chunk in scored[:limit]]
 
 
+def all_terms_supported(question: str, chunks: list[TranscriptChunk]) -> bool:
+    question_terms = set(tokenize(question))
+    if not question_terms:
+        return False
+    chunk_terms: set[str] = set()
+    for chunk in chunks:
+        chunk_terms.update(tokenize(chunk.text))
+    return question_terms.issubset(chunk_terms)
+
+
+def excerpt_language(chunks: list[TranscriptChunk], fallback: Language) -> Language:
+    languages = {chunk.language for chunk in chunks}
+    if len(languages) == 1:
+        return chunks[0].language
+    return fallback
+
+
 def answer_from_chunks(
     question: str, chunks: list[TranscriptChunk], answer_language: Language
 ) -> QuestionAnswer:
     matches = rank_chunks(question, chunks, limit=2)
-    if not matches:
+    if not matches or not all_terms_supported(question, matches):
         fallback = "I could not find enough information in the transcript to answer that."
         if answer_language == Language.HEBREW:
             fallback = "לא מצאתי מספיק מידע בתמלול כדי לענות על השאלה."
@@ -94,7 +111,7 @@ def answer_from_chunks(
     return QuestionAnswer(
         question=question,
         answer=answer,
-        language=answer_language,
+        language=excerpt_language(matches, answer_language),
         timestamps=timestamps,
         excerpts=excerpts,
         grounded=True,

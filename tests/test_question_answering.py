@@ -34,3 +34,17 @@ def test_answer_from_chunks_does_not_guess():
     answer = answer_from_chunks("What is the warranty?", chunks(), Language.ENGLISH)
     assert answer.grounded is False
     assert "I could not find" in answer.answer
+
+
+def test_answer_from_chunks_rejects_partial_token_overlap():
+    answer = answer_from_chunks(
+        "What is the setup warranty?", chunks(), Language.ENGLISH
+    )
+    assert answer.grounded is False
+    assert "I could not find" in answer.answer
+
+
+def test_answer_from_chunks_reports_excerpt_language():
+    answer = answer_from_chunks("What is the price?", chunks(), Language.HEBREW)
+    assert answer.grounded is True
+    assert answer.language == Language.ENGLISH
