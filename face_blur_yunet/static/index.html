@@ -7,40 +7,51 @@
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <main class="shell">
+  <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Private local workspace</p>
-        <h1>Media Processing Dashboard</h1>
+        <p class="eyebrow">Local media workspace</p>
+        <h1>Media Processing</h1>
       </div>
-      <span class="status-pill idle" id="status-pill">Ready</span>
+      <div class="topbar-actions">
+        <span class="media-chip">Video</span>
+        <span class="media-chip">Audio</span>
+        <span class="status-pill idle" id="status-pill">Ready</span>
+      </div>
     </header>
 
-    <section class="panel setup-panel">
+    <section class="panel setup-panel primary-panel">
       <div class="panel-heading">
-        <h2>New Media</h2>
-        <span class="meta">Outputs save under data/outputs</span>
+        <div>
+          <h2>New Job</h2>
+          <p class="panel-subtitle">MP4, MOV, MKV, WEBM, AVI, or MP3</p>
+        </div>
+        <span class="meta">data/outputs</span>
       </div>
       <form id="job-form">
-        <label class="field wide">Video or audio path
-          <input id="input-path" name="input_path" required placeholder="/Users/me/media.mp4 or /Users/me/audio.mp3">
+        <label class="field wide">Media file path
+          <input id="input-path" name="input_path" required placeholder="/Users/me/client-call.mp4 or /Users/me/interview.mp3">
         </label>
-        <label class="field">Source language
-          <select id="source-language">
-            <option value="auto">Auto detect</option>
-            <option value="he">Hebrew</option>
-            <option value="en">English</option>
-          </select>
-        </label>
-        <label class="field">Translate to
-          <select id="translation-target">
-            <option value="">No translation</option>
-            <option value="en">English</option>
-            <option value="he">Hebrew</option>
-          </select>
-        </label>
-        <label class="check-row"><input id="subtitles" type="checkbox" checked> Export SRT subtitles</label>
-        <label class="check-row"><input id="face-blur" type="checkbox"> Blur faces in video</label>
+        <div class="field-grid wide">
+          <label class="field">Source language
+            <select id="source-language">
+              <option value="auto">Auto detect</option>
+              <option value="he">Hebrew</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label class="field">Translate transcript
+            <select id="translation-target">
+              <option value="">No translation</option>
+              <option value="en">To English</option>
+              <option value="he">To Hebrew</option>
+            </select>
+          </label>
+        </div>
+        <div class="option-grid wide">
+          <label class="check-row"><input id="subtitles" type="checkbox" checked> <span>Export subtitles</span></label>
+          <label class="check-row"><input id="face-blur" type="checkbox"> <span>Blur video faces</span></label>
+        </div>
         <button type="submit" id="create-job">Create Job</button>
       </form>
     </section>
@@ -55,7 +66,7 @@
     </section>
 
     <section class="panel artifacts-panel">
-      <h2>Output Files</h2>
+      <h2>Outputs</h2>
       <ul class="artifact-list" id="artifact-list">
         <li class="empty-state">No output files yet.</li>
       </ul>
@@ -65,15 +76,17 @@
       <h2>Ask the Transcript</h2>
       <form id="question-form">
         <label class="field wide">Question
-          <input id="question" placeholder="Ask a question about the transcript">
+          <input id="question" placeholder="What did the client say about price?">
         </label>
-        <label class="field">Answer language
-          <select id="answer-language">
-            <option value="en">English</option>
-            <option value="he">Hebrew</option>
-          </select>
-        </label>
-        <button type="submit" disabled id="ask-button">Ask</button>
+        <div class="field-grid wide compact-grid">
+          <label class="field">Answer language
+            <select id="answer-language">
+              <option value="en">English</option>
+              <option value="he">Hebrew</option>
+            </select>
+          </label>
+          <button type="submit" disabled id="ask-button">Ask</button>
+        </div>
       </form>
       <div class="answer-card" id="answer-card">
         <p class="empty-state">Process a media file first.</p>

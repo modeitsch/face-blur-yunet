@@ -66,6 +66,17 @@ function titleCase(value) {
   return value.replace(/[_-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function jobOptions(job) {
+  return job?.options || {};
+}
+
+function languageLabel(value) {
+  if (value === 'he') return 'Hebrew';
+  if (value === 'en') return 'English';
+  if (value === 'auto') return 'Auto detect';
+  return titleCase(value);
+}
+
 function canAsk(job) {
   return Boolean(job?.status === 'complete' && job?.artifacts?.transcript_index);
 }
@@ -102,13 +113,14 @@ function renderJob(job) {
   appendText(header, 'span', titleCase(job.status), `mini-pill ${statusTone(job.status)}`);
   jobSummary.appendChild(header);
 
+  const options = jobOptions(job);
   const grid = document.createElement('dl');
   grid.className = 'summary-grid';
-  addSummaryItem(grid, 'Source', job.input_path || 'Unknown');
-  addSummaryItem(grid, 'Language', titleCase(job.source_language || 'auto'));
-  addSummaryItem(grid, 'Translate', job.translation_target ? titleCase(job.translation_target) : 'None');
-  addSummaryItem(grid, 'Subtitles', job.subtitles ? 'Yes' : 'No');
-  addSummaryItem(grid, 'Face blur', job.face_blur ? 'Yes' : 'No');
+  addSummaryItem(grid, 'Media file', job.input_path || 'Unknown');
+  addSummaryItem(grid, 'Language', languageLabel(options.source_language || 'auto'));
+  addSummaryItem(grid, 'Translate', options.translation_target ? languageLabel(options.translation_target) : 'None');
+  addSummaryItem(grid, 'Subtitles', options.subtitles ? 'Yes' : 'No');
+  addSummaryItem(grid, 'Face blur', options.face_blur ? 'Yes' : 'No');
   jobSummary.appendChild(grid);
 
   if (job.error) {
@@ -143,11 +155,28 @@ function renderArtifacts(artifacts) {
 
   for (const [key, path] of entries) {
     const item = document.createElement('li');
-    const label = appendText(item, 'span', titleCase(key), 'artifact-name');
+    const label = appendText(item, 'span', artifactLabel(key), 'artifact-name');
     label.title = key;
     appendText(item, 'code', path, 'artifact-path');
     artifactList.appendChild(item);
   }
+}
+
+function artifactLabel(key) {
+  const labels = {
+    audio: 'Working audio',
+    face_blurred_video: 'Blurred video',
+    processing_report: 'Processing report',
+    source_audio: 'Original audio',
+    source_media: 'Original media',
+    source_video: 'Original video',
+    subtitles: 'Subtitles',
+    transcript: 'Transcript',
+    transcript_index: 'Transcript index',
+    translated_subtitles: 'Translated subtitles',
+    translated_transcript: 'Translated transcript'
+  };
+  return labels[key] || titleCase(key);
 }
 
 function renderError(target, message) {
