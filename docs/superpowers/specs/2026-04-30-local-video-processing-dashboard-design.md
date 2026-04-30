@@ -28,7 +28,7 @@ Version 1 should be a local private dashboard with a simple job workflow:
 3. Start processing.
 4. Review generated files in an output folder.
 
-The dashboard can run locally on the Mac Apple Silicon machine first. The Windows NVIDIA PC should be supported later as a worker by keeping processing logic separate from the UI.
+The dashboard should run locally on the Mac Apple Silicon machine first. The Windows NVIDIA PC should be supported later as a worker by keeping processing logic separate from the UI.
 
 ## User Workflow
 
@@ -41,9 +41,9 @@ Required job options:
 - Source language: auto-detect, Hebrew, or English.
 - Transcript: on or off.
 - Translation: none, Hebrew to English, English to Hebrew, or auto to other language.
-- Subtitles: none, SRT only, or burned into video.
+- Subtitles: none, SRT only, or burned into video when subtitle burn-in is enabled.
 - Face blur: off or on.
-- Dubbing: off by default, available as experimental when a local voice engine is configured.
+- Dubbing: hidden or disabled by default until a local voice engine is configured.
 
 ### Process Job
 
@@ -109,7 +109,7 @@ A lightweight local web app is preferred because it works on both Mac and Window
 
 ### Job Store
 
-Use a simple local SQLite database or JSON job registry for version 1. SQLite is preferred if the dashboard needs persistent job history, retries, and reliable status updates.
+Use SQLite for version 1 so job history, retries, and status updates are reliable without adding a separate database service.
 
 Stored data:
 
@@ -175,14 +175,14 @@ Translation should preserve timestamps from the transcription segments so subtit
 
 ### Subtitle Outputs
 
-The subtitle module should generate `.srt` files from transcript or translated segments. Burned-in subtitles should be rendered with `ffmpeg` into a new video file.
+The subtitle module should generate `.srt` files from transcript or translated segments. Burned-in subtitles should be rendered with `ffmpeg` into a new video file after the SRT path is working.
 
 Subtitle options:
 
 - Original language SRT
 - Translated language SRT
-- Original language burned into video
-- Translated language burned into video
+- Original language burned into video, milestone 1b
+- Translated language burned into video, milestone 1b
 
 For version 1, prefer simple readable subtitles over advanced styling.
 
@@ -208,7 +208,7 @@ The face blur output should preserve the original audio unless another pipeline 
 
 ### Dubbing Engine
 
-Dubbing should be treated as optional and experimental in the first design. The app should support the workflow conceptually, but the version 1 implementation can ship without a default dubbing engine if quality or setup is not ready.
+Dubbing should be treated as optional and experimental in the first design. The app should support the workflow conceptually, but the version 1 implementation should ship with dubbing disabled unless a local TTS backend passes a readiness check.
 
 Dubbing pipeline:
 
@@ -279,7 +279,7 @@ Version 1 should include focused tests around pipeline behavior rather than expe
 
 Test areas:
 
-- CLI or backend option validation.
+- Backend option validation.
 - Job status transitions.
 - Transcript segment to `.srt` formatting.
 - Output filename generation.
@@ -320,10 +320,11 @@ app.py
 
 ## First Implementation Milestone
 
-The first useful milestone should avoid dubbing and focus on dependable daily use:
+The first useful milestone should focus on dependable daily use without dubbing:
 
-- Local dashboard or local CLI job runner.
+- Local web dashboard.
 - Add video job.
+- Persist job state in SQLite.
 - Transcribe Hebrew or English locally.
 - Export original-language `.txt` and `.srt`.
 - Translate Hebrew to English or English to Hebrew when a local translation backend is available.
@@ -331,11 +332,15 @@ The first useful milestone should avoid dubbing and focus on dependable daily us
 - Optional YuNet face blur.
 - Processing report per job.
 
+## Milestone 1b
+
+- Burn original or translated subtitles into video.
+- Add simple progress bars.
+- Add batch folder processing.
+
 ## Later Milestones
 
-- Burn subtitles into video.
-- Add batch folder processing.
-- Add progress bars with estimated time remaining.
+- Add progress estimates based on observed processing speed.
 - Add Windows NVIDIA worker mode.
 - Add local dubbing backend.
 - Add speaker labeling if a reliable local option is selected.
@@ -346,20 +351,18 @@ The first useful milestone should avoid dubbing and focus on dependable daily us
 
 These decisions should be finalized before implementation planning:
 
-1. Whether version 1 starts as a local web dashboard or a command-line batch runner with a dashboard added later.
-2. Which local transcription backend to use first on Apple Silicon.
-3. Which local translation backend to use first for Hebrew and English.
-4. Whether subtitle burn-in is part of version 1 or a second milestone.
-5. Whether the Windows NVIDIA PC is configured in version 1 or reserved for a later worker milestone.
+1. Which local transcription backend to use first on Apple Silicon.
+2. Which local translation backend to use first for Hebrew and English.
+3. Whether subtitle burn-in is included immediately after SRT export or reserved for milestone 1b.
+4. Whether the Windows NVIDIA PC is configured in version 1 or reserved for a later worker milestone.
 
 ## Recommended Version 1 Decision
-
-Start with a local web dashboard if ease of use is more important than fastest delivery. Start with a command-line batch runner if the priority is getting reliable transcript and blur outputs as quickly as possible.
 
 Given the intended admin-only workflow, the preferred design is:
 
 - Build backend pipeline modules first.
 - Keep the current face blur CLI working.
-- Add a minimal local dashboard on top of the backend.
+- Add a minimal local web dashboard on top of the backend.
 - Ship transcription, transcript export, SRT export, translation if local backend readiness is good, and optional face blur.
+- Treat subtitle burn-in as milestone 1b unless it is trivial after SRT generation.
 - Treat dubbing and remote worker support as later milestones.
