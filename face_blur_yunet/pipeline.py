@@ -81,6 +81,11 @@ class Pipeline:
                         translated_segments,
                     )
                     self._set_artifact(job.id, "translated_transcript", translated_transcript_path)
+                    translated_srt_path = write_srt(
+                        output_dir / f"subtitles.{job.options.translation_target.value}.srt",
+                        translated_segments,
+                    )
+                    self._set_artifact(job.id, "translated_subtitles", translated_srt_path)
 
             if job.options.face_blur:
                 self.store.update_status(job.id, JobStatus.BLURRING_FACES)

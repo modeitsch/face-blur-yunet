@@ -33,6 +33,7 @@ def test_pipeline_writes_transcript_srt_index_and_answers(tmp_path, monkeypatch)
     assert (tmp_path / "outputs" / f"job-{job.id}" / "subtitles.en.srt").exists()
     assert (tmp_path / "outputs" / f"job-{job.id}" / "transcript-index.json").exists()
     assert (tmp_path / "outputs" / f"job-{job.id}" / "transcript.he.txt").exists()
+    assert (tmp_path / "outputs" / f"job-{job.id}" / "subtitles.he.srt").exists()
 
 
 def test_pipeline_writes_source_artifacts_for_translation_only_job(tmp_path, monkeypatch):
@@ -70,3 +71,4 @@ def test_pipeline_writes_source_artifacts_for_translation_only_job(tmp_path, mon
     assert (output_dir / "subtitles.en.srt").exists()
     assert (output_dir / "transcript-index.json").exists()
     assert (output_dir / "transcript.he.txt").exists()
+    assert (output_dir / "subtitles.he.srt").exists()
