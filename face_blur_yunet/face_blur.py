@@ -45,6 +45,8 @@ def clamp_box(
         h += pad_y * 2
     x = max(0, x)
     y = max(0, y)
+    if x >= frame_w or y >= frame_h:
+        return min(x, frame_w), min(y, frame_h), 0, 0
     w = min(frame_w - x, max(1, w))
     h = min(frame_h - y, max(1, h))
     return x, y, w, h
@@ -58,6 +60,8 @@ def blur_face_only(frame, box, options: BlurOptions | None = None) -> None:
     options = options or BlurOptions()
     frame_h, frame_w = frame.shape[:2]
     x, y, w, h = clamp_box(box, frame_w, frame_h, options)
+    if w == 0 or h == 0:
+        return
     roi = frame[y : y + h, x : x + w]
     if roi.size == 0:
         return
@@ -87,38 +91,46 @@ def process_video(
     if not cap.isOpened():
         raise RuntimeError(f"Could not open input video: {input_path}")
 
-    fps = cap.get(cv2.CAP_PROP_FPS) or 30
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    writer = None
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    detector = cv2.FaceDetectorYN.create(
-        str(model_path), "", (width, height), options.score_threshold, 0.3, 5000
-    )
-    writer = cv2.VideoWriter(
-        str(temp_video_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height)
-    )
-    if not writer.isOpened():
-        raise RuntimeError(f"Could not open output video writer: {temp_video_path}")
+        detector = cv2.FaceDetectorYN.create(
+            str(model_path), "", (width, height), options.score_threshold, 0.3, 5000
+        )
+        writer = cv2.VideoWriter(
+            str(temp_video_path), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height)
+        )
+        if not writer.isOpened():
+            raise RuntimeError(f"Could not open output video writer: {temp_video_path}")
 
-    frame_count = 0
-    detected_frames = 0
-    total_faces = 0
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
-        _, faces = detector.detect(frame)
-        if faces is not None:
-            detected_frames += 1
-            total_faces += len(faces)
-            for face in faces:
-                blur_face_only(frame, face[:4], options)
-        writer.write(frame)
-        frame_count += 1
+        frame_count = 0
+        detected_frames = 0
+        total_faces = 0
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                break
+            _, faces = detector.detect(frame)
+            if faces is not None:
+                detected_frames += 1
+                total_faces += len(faces)
+                for face in faces:
+                    blur_face_only(frame, face[:4], options)
+            writer.write(frame)
+            frame_count += 1
 
-    cap.release()
-    writer.release()
-    return {"frames": frame_count, "detected_frames": detected_frames, "faces": total_faces}
+        return {
+            "frames": frame_count,
+            "detected_frames": detected_frames,
+            "faces": total_faces,
+        }
+    finally:
+        cap.release()
+        if writer is not None:
+            writer.release()
 
 
 def mux_audio(temp_video_path: Path, input_path: Path, output_path: Path) -> None:
