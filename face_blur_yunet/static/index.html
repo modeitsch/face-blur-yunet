@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Processing Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="panel">
+      <h1>Video Processing Dashboard</h1>
+      <form id="job-form">
+        <label>Video path <input id="input-path" name="input_path" required placeholder="/Users/me/video.mp4"></label>
+        <label>Source language
+          <select id="source-language"><option value="auto">Auto</option><option value="he">Hebrew</option><option value="en">English</option></select>
+        </label>
+        <label>Translate to
+          <select id="translation-target"><option value="">None</option><option value="en">English</option><option value="he">Hebrew</option></select>
+        </label>
+        <label><input id="subtitles" type="checkbox" checked> Export SRT subtitles</label>
+        <label><input id="face-blur" type="checkbox"> Blur faces</label>
+        <button type="submit">Create Job</button>
+      </form>
+    </section>
+    <section class="panel">
+      <h2>Current Job</h2>
+      <pre id="job-output">No job yet.</pre>
+      <button id="run-job" disabled>Run Job</button>
+    </section>
+    <section class="panel">
+      <h2>Ask the Video</h2>
+      <form id="question-form">
+        <input id="question" placeholder="Ask a question about the transcript">
+        <select id="answer-language"><option value="en">English</option><option value="he">Hebrew</option></select>
+        <button type="submit" disabled id="ask-button">Ask</button>
+      </form>
+      <pre id="answer-output">Process a video first.</pre>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

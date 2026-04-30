@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from face_blur_yunet.jobs import JobStore, StoredJob
@@ -28,6 +29,8 @@ def create_app(base_dir: Path) -> FastAPI:
     base_dir.mkdir(parents=True, exist_ok=True)
     store = JobStore(base_dir / "jobs.sqlite")
     app = FastAPI(title="Local Video Processing Dashboard")
+    static_dir = Path(__file__).resolve().parent / "static"
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     @app.get("/api/health")
     def health() -> dict[str, bool]:
@@ -75,11 +78,8 @@ def create_app(base_dir: Path) -> FastAPI:
         return _question_answer_to_dict(answer)
 
     @app.get("/")
-    def dashboard() -> HTMLResponse:
-        static_path = base_dir / "dashboard.html"
-        if static_path.exists():
-            return HTMLResponse(static_path.read_text(encoding="utf-8"))
-        return HTMLResponse("<!doctype html><title>Local Video Dashboard</title><h1>Local Video Dashboard</h1>")
+    def dashboard() -> FileResponse:
+        return FileResponse(static_dir / "index.html")
 
     return app
 
