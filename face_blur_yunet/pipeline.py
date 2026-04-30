@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -40,6 +41,8 @@ class Pipeline:
             media_info = probe_media(job.input_path)
             if job.options.requires_audio and not media_info.has_audio:
                 raise RuntimeError("Video has no audio stream")
+            source_video_path = _copy_source_video(job.input_path, output_dir)
+            self._set_artifact(job.id, "source_video", source_video_path)
 
             source_segments: list[TranscriptSegment] = []
             source_language = job.options.source_language
@@ -135,3 +138,10 @@ def _segments_language(segments: list[TranscriptSegment], fallback: Language) ->
 
 def _blur_video(input_path: Path, output_path: Path, options: BlurOptions) -> dict[str, int]:
     return blur_video(input_path, output_path, options=options)
+
+
+def _copy_source_video(input_path: Path, output_dir: Path) -> Path:
+    suffix = input_path.suffix or ".mp4"
+    output_path = output_dir / f"video.original{suffix}"
+    shutil.copy2(input_path, output_path)
+    return output_path

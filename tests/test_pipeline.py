@@ -31,6 +31,7 @@ def test_pipeline_writes_transcript_srt_index_and_answers(tmp_path, monkeypatch)
 
     loaded = store.get_job(job.id)
     assert loaded.status == JobStatus.COMPLETE
+    assert (tmp_path / "outputs" / f"job-{job.id}" / "video.original.mp4").exists()
     assert (tmp_path / "outputs" / f"job-{job.id}" / "transcript.en.txt").exists()
     assert (tmp_path / "outputs" / f"job-{job.id}" / "subtitles.en.srt").exists()
     assert (tmp_path / "outputs" / f"job-{job.id}" / "transcript-index.json").exists()
@@ -101,6 +102,7 @@ def test_pipeline_stores_artifact_contracts_for_translated_job(tmp_path, monkeyp
     loaded = store.get_job(job.id)
     assert loaded.status == JobStatus.COMPLETE
     assert set(loaded.artifacts) >= {
+        "source_video",
         "transcript",
         "subtitles",
         "transcript_index",
@@ -179,7 +181,29 @@ def test_pipeline_face_blur_calls_injected_engine_and_stores_artifact(tmp_path, 
     loaded = store.get_job(job.id)
     artifact_path = tmp_path / "outputs" / f"job-{job.id}" / "video.face-blurred.mp4"
     assert loaded.status == JobStatus.COMPLETE
+    assert loaded.artifacts["source_video"] == str(tmp_path / "outputs" / f"job-{job.id}" / "video.original.mp4")
     assert calls and calls[0][0] == input_path
     assert calls[0][1] == artifact_path
     assert loaded.artifacts["face_blurred_video"] == str(artifact_path)
     assert artifact_path.read_bytes() == b"blurred"
+
+
+def test_pipeline_copies_source_video_to_output_folder(tmp_path, monkeypatch):
+    input_path = tmp_path / "input.mov"
+    input_path.write_bytes(b"original video")
+    store = JobStore(tmp_path / "jobs.sqlite")
+    job = store.create_job(
+        input_path,
+        tmp_path / "outputs",
+        JobOptions(transcript=False, questions=False, subtitles=False),
+    )
+
+    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": False})())
+
+    Pipeline(store).run(job.id)
+
+    loaded = store.get_job(job.id)
+    output_video = tmp_path / "outputs" / f"job-{job.id}" / "video.original.mov"
+    assert loaded.status == JobStatus.COMPLETE
+    assert loaded.artifacts["source_video"] == str(output_video)
+    assert output_video.read_bytes() == b"original video"
