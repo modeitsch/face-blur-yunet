@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from face_blur_yunet.models import JobOptions, Language, TranscriptSegment
+from face_blur_yunet.models import JobOptions, JobStatus, Language, TranscriptSegment
 
 
 def test_job_options_enables_questions_when_transcript_is_enabled():
@@ -17,3 +17,8 @@ def test_transcript_segment_formats_timestamp():
     segment = TranscriptSegment(id=1, start=65.2, end=67.8, text="hello", language=Language.ENGLISH)
     assert segment.start_srt == "00:01:05,200"
     assert segment.end_srt == "00:01:07,800"
+
+
+def test_string_enums_render_values():
+    assert str(Language.ENGLISH) == "en"
+    assert str(JobStatus.QUEUED) == "queued"

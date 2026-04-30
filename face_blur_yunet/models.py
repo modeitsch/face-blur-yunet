@@ -5,13 +5,17 @@ from enum import Enum
 from pathlib import Path
 
 
-class Language(str, Enum):
+class StringEnum(str, Enum):
+    __str__ = str.__str__
+
+
+class Language(StringEnum):
     AUTO = "auto"
     HEBREW = "he"
     ENGLISH = "en"
 
 
-class JobStatus(str, Enum):
+class JobStatus(StringEnum):
     QUEUED = "queued"
     VALIDATING = "validating"
     EXTRACTING_AUDIO = "extracting_audio"
