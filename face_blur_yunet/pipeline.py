@@ -32,10 +32,10 @@ class Pipeline:
     def run(self, job_id: int) -> None:
         job = self.store.get_job(job_id)
         output_dir = job.output_dir / f"job-{job.id}"
-        output_dir.mkdir(parents=True, exist_ok=True)
         error: str | None = None
 
         try:
+            output_dir.mkdir(parents=True, exist_ok=True)
             self.store.update_status(job.id, JobStatus.VALIDATING)
             media_info = probe_media(job.input_path)
             if job.options.requires_audio and not media_info.has_audio:
@@ -113,17 +113,17 @@ class Pipeline:
         self.store.set_artifact(job_id, name, path)
 
     def _write_processing_report(self, job_id: int, output_dir: Path, error: str | None) -> None:
-        job = self.store.get_job(job_id)
         report_path = output_dir / "processing-report.json"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        self.store.set_artifact(job_id, "processing_report", report_path)
+        job = self.store.get_job(job_id)
         payload = {
             "job_id": job.id,
             "status": job.status.value,
             "artifacts": job.artifacts,
             "error": job.error or error,
         }
-        report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        self.store.set_artifact(job.id, "processing_report", report_path)
 
 
 def _segments_language(segments: list[TranscriptSegment], fallback: Language) -> Language:
