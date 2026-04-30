@@ -34,7 +34,10 @@ class ArgosTranslator:
     def translate(self, text: str, source: Language, target: Language) -> str:
         if source == Language.AUTO:
             raise RuntimeError("Choose a source language before translation")
-        return self._translate.translate(text, source.value, target.value)
+        try:
+            return self._translate.translate(text, source.value, target.value)
+        except Exception as exc:
+            raise RuntimeError("Offline translation package is not available for this language pair") from exc
 
 
 def translate_segments(
