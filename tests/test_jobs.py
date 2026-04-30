@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 
 from face_blur_yunet.jobs import JobStore
@@ -40,5 +42,5 @@ def test_job_store_rejects_question_history_for_missing_job(tmp_path):
         excerpts=["price 500"],
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.IntegrityError):
         store.add_question_answer(999, question_answer)
