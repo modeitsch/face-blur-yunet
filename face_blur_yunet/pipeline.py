@@ -52,25 +52,22 @@ class Pipeline:
                 source_segments = transcribe_audio(audio_path, source_language, self.engines.transcriber)
                 source_language = _segments_language(source_segments, source_language)
 
-                if job.options.transcript:
-                    transcript_path = write_transcript(
-                        output_dir / f"transcript.{source_language.value}.txt",
-                        source_segments,
-                    )
-                    self._set_artifact(job.id, "transcript", transcript_path)
+                transcript_path = write_transcript(
+                    output_dir / f"transcript.{source_language.value}.txt",
+                    source_segments,
+                )
+                self._set_artifact(job.id, "transcript", transcript_path)
 
-                if job.options.subtitles:
-                    self.store.update_status(job.id, JobStatus.WRITING_SUBTITLES)
-                    srt_path = write_srt(
-                        output_dir / f"subtitles.{source_language.value}.srt",
-                        source_segments,
-                    )
-                    self._set_artifact(job.id, "subtitles", srt_path)
+                self.store.update_status(job.id, JobStatus.WRITING_SUBTITLES)
+                srt_path = write_srt(
+                    output_dir / f"subtitles.{source_language.value}.srt",
+                    source_segments,
+                )
+                self._set_artifact(job.id, "subtitles", srt_path)
 
-                if job.options.questions:
-                    self.store.update_status(job.id, JobStatus.INDEXING_TRANSCRIPT)
-                    index_path = index_transcript(source_segments, output_dir)
-                    self._set_artifact(job.id, "transcript_index", index_path)
+                self.store.update_status(job.id, JobStatus.INDEXING_TRANSCRIPT)
+                index_path = index_transcript(source_segments, output_dir)
+                self._set_artifact(job.id, "transcript_index", index_path)
 
                 if job.options.translation_target is not None:
                     self.store.update_status(job.id, JobStatus.TRANSLATING)
