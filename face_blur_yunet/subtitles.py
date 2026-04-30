@@ -11,11 +11,11 @@ def segments_to_plain_text(segments: list[TranscriptSegment]) -> str:
 
 def segments_to_srt(segments: list[TranscriptSegment]) -> str:
     blocks = []
-    for index, segment in enumerate(segments, start=1):
+    for segment in segments:
         text = segment.text.strip()
         if not text:
             continue
-        blocks.append(f"{index}\n{segment.start_srt} --> {segment.end_srt}\n{text}")
+        blocks.append(f"{len(blocks) + 1}\n{segment.start_srt} --> {segment.end_srt}\n{text}")
     return "\n\n".join(blocks) + ("\n" if blocks else "")
 
 
