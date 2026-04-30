@@ -6,7 +6,7 @@ Status: Draft for review
 
 ## Goal
 
-Build the existing face blur script into a private, local-first video processing tool for client videos. The first version is for admin-only use by the repository owner. It should transcribe videos in Hebrew or English, optionally translate the transcript to the other language, optionally create subtitle outputs, and optionally blur faces in the final video.
+Build the existing face blur script into a private, local-first video processing tool for client videos. The first version is for admin-only use by the repository owner. It should transcribe videos in Hebrew or English, optionally translate the transcript to the other language, let the admin ask questions about the video based on the transcript, optionally create subtitle outputs, and optionally blur faces in the final video.
 
 The tool should keep client videos local by default. Cloud AI APIs should not be required for version 1. The design should still leave clean extension points for future cloud adapters or a second worker machine.
 
@@ -18,6 +18,7 @@ The tool should keep client videos local by default. Cloud AI APIs should not be
 - No guaranteed fully automatic broadcast-quality dubbing.
 - No multi-user job management.
 - No training or fine-tuning custom AI models.
+- No visual scene understanding beyond transcript-based answers.
 
 ## Recommended Product Shape
 
@@ -27,6 +28,7 @@ Version 1 should be a local private dashboard with a simple job workflow:
 2. Choose the requested outputs for each video.
 3. Start processing.
 4. Review generated files in an output folder.
+5. Ask questions about the processed video using the transcript as the source.
 
 The dashboard should run locally on the Mac Apple Silicon machine first. The Windows NVIDIA PC should be supported later as a worker by keeping processing logic separate from the UI.
 
@@ -41,6 +43,7 @@ Required job options:
 - Source language: auto-detect, Hebrew, or English.
 - Transcript: on or off.
 - Translation: none, Hebrew to English, English to Hebrew, or auto to other language.
+- Ask video questions: on when transcript is enabled.
 - Subtitles: none, SRT only, or burned into video when subtitle burn-in is enabled.
 - Face blur: off or on.
 - Dubbing: hidden or disabled by default until a local voice engine is configured.
@@ -52,12 +55,27 @@ The app shows job status:
 - Queued
 - Extracting audio
 - Transcribing
+- Indexing transcript for questions
 - Translating
 - Rendering subtitles
 - Blurring faces
 - Dubbing audio, if enabled
 - Muxing final video
 - Complete or failed
+
+### Ask Questions About A Video
+
+After transcription is complete, the admin can open the job and ask natural-language questions such as:
+
+- What is the main topic of this video?
+- What did the speaker say about pricing?
+- List the action items.
+- Summarize the video in English.
+- Where in the video do they mention the delivery date?
+
+The answer should be based only on the transcript and should include supporting timestamps whenever possible. If the transcript does not contain enough information, the app should say that it cannot answer from the transcript instead of guessing.
+
+The question language can be Hebrew or English. The answer language should default to the question language, with an option to answer in Hebrew or English.
 
 ### Review Output
 
@@ -72,6 +90,7 @@ outputs/client-video-name/
   transcript.en.txt
   subtitles.he.srt
   subtitles.en.srt
+  question-history.json
   video.face-blurred.mp4
   video.subtitled.en.mp4
   video.face-blurred.subtitled.en.mp4
@@ -89,6 +108,8 @@ Dashboard UI
       -> Media Probe
       -> Audio Extractor
       -> Transcription Engine
+      -> Transcript Indexer
+      -> Question Answering Engine
       -> Translation Engine
       -> Subtitle Renderer
       -> Face Blur Engine
@@ -103,13 +124,14 @@ The dashboard owns only interaction and job visibility. It should not contain mo
 - `create_job(video_path, options)`
 - `start_job(job_id)`
 - `get_job_status(job_id)`
+- `ask_question(job_id, question, answer_language)`
 - `open_output_folder(job_id)`
 
 A lightweight local web app is preferred because it works on both Mac and Windows and can evolve into a worker-based setup later.
 
 ### Job Store
 
-Use SQLite for version 1 so job history, retries, and status updates are reliable without adding a separate database service.
+Use SQLite for version 1 so job history, retries, question history, and status updates are reliable without adding a separate database service.
 
 Stored data:
 
@@ -121,6 +143,8 @@ Stored data:
 - Progress details
 - Error message, if any
 - Generated artifact paths
+- Transcript index path
+- Question and answer history
 - Created and completed timestamps
 
 ### Processing Orchestrator
@@ -138,7 +162,7 @@ The app should validate input files before starting expensive model work:
 - File exists
 - File is readable
 - File contains a video stream
-- Audio stream exists when transcription, translation, or dubbing is requested
+- Audio stream exists when transcription, translation, questions, or dubbing is requested
 - Output folder can be written
 
 ### Transcription Engine
@@ -160,6 +184,53 @@ Transcript segments should include:
 - Confidence or quality metadata, when available
 
 The first implementation can support one local backend. Later implementations can add a faster Apple Silicon path and a CUDA/NVIDIA path without changing the rest of the app.
+
+### Transcript Indexer
+
+The transcript indexer prepares transcript segments for question answering. It should split transcript text into searchable chunks while preserving timestamps and source language.
+
+Adapter interface:
+
+```text
+index_transcript(segments, output_dir) -> transcript index
+```
+
+Each indexed chunk should include:
+
+- Chunk text
+- Source segment ids
+- Start and end timestamp range
+- Language
+- Optional embedding vector if the selected local Q&A backend supports semantic search
+
+Version 1 can start with simple keyword plus time-aware chunk retrieval if a local embedding model is not configured. Semantic retrieval can be added behind the same interface.
+
+### Question Answering Engine
+
+The question answering engine answers admin questions using only the transcript index. It should not claim visual details that are not present in the transcript.
+
+Adapter interface:
+
+```text
+answer_question(job_id, question, answer_language) -> answer with citations
+```
+
+Answer payload:
+
+- Answer text
+- Source timestamps
+- Source transcript excerpts
+- Confidence or grounding note
+- Language used for the answer
+
+Behavior rules:
+
+- Prefer answers grounded in transcript chunks.
+- Include timestamps for relevant moments.
+- Say when the transcript does not contain enough information.
+- Support Hebrew and English questions.
+- Default answer language to the question language unless the user chooses otherwise.
+- Store question history locally so the admin can return to previous answers.
 
 ### Translation Engine
 
@@ -234,6 +305,7 @@ The pipeline should compose selected outputs instead of forcing one final artifa
 Examples:
 
 - Transcript only: extract audio -> transcribe -> write transcript.
+- Ask questions: extract audio -> transcribe -> index transcript -> answer questions on demand.
 - Translated SRT: extract audio -> transcribe -> translate -> write SRT.
 - Face blur only: blur video -> mux original audio.
 - Face blur plus translated subtitles: transcribe -> translate -> write SRT -> blur video -> burn translated subtitles.
@@ -249,8 +321,9 @@ Expected errors:
 
 - Missing `ffmpeg` or `ffprobe`.
 - Unsupported video file.
-- Video has no audio when transcription is requested.
+- Video has no audio when transcription or questions are requested.
 - Local transcription model is missing.
+- Local question answering model is missing, if semantic Q&A is configured.
 - Local translation model is missing.
 - Local dubbing engine is not configured.
 - Face detector model download fails.
@@ -260,7 +333,7 @@ Every failed job should write a `processing-report.json` file with the failed st
 
 ## Privacy And File Handling
 
-Client videos should stay on local disk. The app should not upload video, audio, transcript, or face data anywhere unless a future cloud provider is explicitly configured.
+Client videos should stay on local disk. The app should not upload video, audio, transcript, question text, answers, or face data anywhere unless a future cloud provider is explicitly configured.
 
 Recommended local folders:
 
@@ -282,6 +355,8 @@ Test areas:
 - Backend option validation.
 - Job status transitions.
 - Transcript segment to `.srt` formatting.
+- Transcript chunk indexing with timestamp preservation.
+- Question answer grounding and empty-result behavior.
 - Output filename generation.
 - Pipeline composition for selected options.
 - Face blur box clamping and mask behavior.
@@ -295,7 +370,7 @@ Current code should be split gradually:
 
 - Keep `blur_faces.py` working while new modules are introduced.
 - Move YuNet model download and face blur logic into a reusable package module.
-- Add pipeline modules around transcription, translation, subtitles, and job orchestration.
+- Add pipeline modules around transcription, transcript indexing, question answering, translation, subtitles, and job orchestration.
 - Add a local dashboard after the backend job flow works.
 
 Suggested package shape:
@@ -308,6 +383,8 @@ face_blur_yunet/
   jobs.py
   pipeline.py
   transcription.py
+  transcript_index.py
+  question_answering.py
   translation.py
   subtitles.py
   dubbing.py
@@ -326,6 +403,8 @@ The first useful milestone should focus on dependable daily use without dubbing:
 - Add video job.
 - Persist job state in SQLite.
 - Transcribe Hebrew or English locally.
+- Index transcript chunks for question answering.
+- Ask transcript-grounded questions in Hebrew or English.
 - Export original-language `.txt` and `.srt`.
 - Translate Hebrew to English or English to Hebrew when a local translation backend is available.
 - Export translated `.txt` and `.srt`.
@@ -337,6 +416,7 @@ The first useful milestone should focus on dependable daily use without dubbing:
 - Burn original or translated subtitles into video.
 - Add simple progress bars.
 - Add batch folder processing.
+- Improve question answering with semantic local retrieval if version 1 starts with keyword retrieval.
 
 ## Later Milestones
 
@@ -352,9 +432,10 @@ The first useful milestone should focus on dependable daily use without dubbing:
 These decisions should be finalized before implementation planning:
 
 1. Which local transcription backend to use first on Apple Silicon.
-2. Which local translation backend to use first for Hebrew and English.
-3. Whether subtitle burn-in is included immediately after SRT export or reserved for milestone 1b.
-4. Whether the Windows NVIDIA PC is configured in version 1 or reserved for a later worker milestone.
+2. Which local question answering backend to use first for transcript-grounded answers.
+3. Which local translation backend to use first for Hebrew and English.
+4. Whether subtitle burn-in is included immediately after SRT export or reserved for milestone 1b.
+5. Whether the Windows NVIDIA PC is configured in version 1 or reserved for a later worker milestone.
 
 ## Recommended Version 1 Decision
 
@@ -363,6 +444,6 @@ Given the intended admin-only workflow, the preferred design is:
 - Build backend pipeline modules first.
 - Keep the current face blur CLI working.
 - Add a minimal local web dashboard on top of the backend.
-- Ship transcription, transcript export, SRT export, translation if local backend readiness is good, and optional face blur.
+- Ship transcription, transcript indexing, transcript-grounded Q&A, transcript export, SRT export, translation if local backend readiness is good, and optional face blur.
 - Treat subtitle burn-in as milestone 1b unless it is trivial after SRT generation.
 - Treat dubbing and remote worker support as later milestones.
