@@ -15,6 +15,7 @@ The repo is suitable to keep public as a portfolio/demo project because the trac
 - Local translation integration through `argostranslate` when Hebrew/English packages are installed.
 - Optional YuNet face blurring for video inputs.
 - Output folder per job with source video copy, transcripts, subtitles, indexes, processing report, and blurred video when requested.
+- macOS and Windows setup scripts, plus shared setup documentation.
 - Tests for request validation, pipeline artifacts, subtitle export, translation, question answering, and face blur logic.
 
 ## Known Limits
@@ -40,7 +41,7 @@ The repo is suitable to keep public as a portfolio/demo project because the trac
 8. Improve question answering with embeddings or a local LLM while keeping the transcript excerpts visible for trust.
 9. Add speaker diarization when the client video includes multiple speakers.
 10. Add automatic subtitle burn-in as a separate option from plain SRT export.
-11. Add a packaging script or Docker setup for repeatable install on Mac and Windows.
+11. Add a Docker setup for users who prefer containers over local virtual environments.
 12. Add a public-facing README section with screenshots, privacy explanation, and example workflow.
 
 ## Public Repository Recommendation

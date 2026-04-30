@@ -51,6 +51,8 @@ The exact files depend on the options selected for the job.
 
 ## Quick Start
 
+For full macOS and Windows instructions, see [docs/setup.md](docs/setup.md).
+
 ### 1. Install system requirements
 
 You need:
@@ -63,6 +65,8 @@ On macOS with Homebrew:
 ```bash
 brew install ffmpeg
 ```
+
+On Windows, install `ffmpeg` and add it to `PATH`.
 
 ### 2. Create a virtual environment
 
@@ -98,6 +102,20 @@ Open:
 
 ```text
 http://127.0.0.1:8000
+```
+
+### Scripted setup
+
+macOS:
+
+```bash
+./scripts/setup-macos.sh
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-windows.ps1
 ```
 
 ## Dashboard Workflow
@@ -187,10 +205,22 @@ Always review generated videos before sharing them. Automatic face detection can
 
 ## Development
 
+Install development tools:
+
+```bash
+pip install -e ".[dev]"
+```
+
 Run tests:
 
 ```bash
 pytest
+```
+
+Run Ruff checks:
+
+```bash
+ruff check .
 ```
 
 Check the dashboard JavaScript:
