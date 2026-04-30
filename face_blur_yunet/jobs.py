@@ -3,9 +3,8 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from face_blur_yunet.models import JobOptions, JobStatus, Language, QuestionAnswer
 
@@ -108,6 +107,7 @@ class JobStore:
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA foreign_keys = ON")
         conn.row_factory = sqlite3.Row
         return conn
 
@@ -184,4 +184,4 @@ def _row_to_question_answer(row: sqlite3.Row) -> QuestionAnswer:
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()

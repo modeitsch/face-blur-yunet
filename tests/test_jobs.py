@@ -1,3 +1,5 @@
+import pytest
+
 from face_blur_yunet.jobs import JobStore
 from face_blur_yunet.models import JobOptions, JobStatus, Language, QuestionAnswer
 
@@ -26,3 +28,17 @@ def test_job_store_records_question_history(tmp_path):
     )
     history = store.list_question_history(job.id)
     assert history[0].answer == "500"
+
+
+def test_job_store_rejects_question_history_for_missing_job(tmp_path):
+    store = JobStore(tmp_path / "jobs.sqlite")
+    question_answer = QuestionAnswer(
+        question="price?",
+        answer="500",
+        language=Language.ENGLISH,
+        timestamps=[(1, 2)],
+        excerpts=["price 500"],
+    )
+
+    with pytest.raises(Exception):
+        store.add_question_answer(999, question_answer)
