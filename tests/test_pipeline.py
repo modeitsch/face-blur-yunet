@@ -17,7 +17,10 @@ def test_pipeline_writes_transcript_srt_index_and_answers(tmp_path, monkeypatch)
         JobOptions(source_language=Language.ENGLISH, translation_target=Language.HEBREW),
     )
 
-    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": True})())
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": True, "has_video": True})(),
+    )
     monkeypatch.setattr("face_blur_yunet.pipeline.extract_audio", lambda src, dst: dst.write_bytes(b"audio") or dst)
 
     pipeline = Pipeline(
@@ -31,6 +34,7 @@ def test_pipeline_writes_transcript_srt_index_and_answers(tmp_path, monkeypatch)
 
     loaded = store.get_job(job.id)
     assert loaded.status == JobStatus.COMPLETE
+    assert loaded.artifacts["source_media"] == str(tmp_path / "outputs" / f"job-{job.id}" / "video.original.mp4")
     assert (tmp_path / "outputs" / f"job-{job.id}" / "video.original.mp4").exists()
     assert (tmp_path / "outputs" / f"job-{job.id}" / "transcript.en.txt").exists()
     assert (tmp_path / "outputs" / f"job-{job.id}" / "subtitles.en.srt").exists()
@@ -55,7 +59,10 @@ def test_pipeline_writes_source_artifacts_for_translation_only_job(tmp_path, mon
         ),
     )
 
-    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": True})())
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": True, "has_video": True})(),
+    )
     monkeypatch.setattr("face_blur_yunet.pipeline.extract_audio", lambda src, dst: dst.write_bytes(b"audio") or dst)
 
     pipeline = Pipeline(
@@ -87,7 +94,10 @@ def test_pipeline_stores_artifact_contracts_for_translated_job(tmp_path, monkeyp
         JobOptions(source_language=Language.ENGLISH, translation_target=Language.HEBREW),
     )
 
-    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": True})())
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": True, "has_video": True})(),
+    )
     monkeypatch.setattr("face_blur_yunet.pipeline.extract_audio", lambda src, dst: dst.write_bytes(b"audio") or dst)
 
     pipeline = Pipeline(
@@ -102,6 +112,7 @@ def test_pipeline_stores_artifact_contracts_for_translated_job(tmp_path, monkeyp
     loaded = store.get_job(job.id)
     assert loaded.status == JobStatus.COMPLETE
     assert set(loaded.artifacts) >= {
+        "source_media",
         "source_video",
         "transcript",
         "subtitles",
@@ -122,7 +133,10 @@ def test_pipeline_processing_report_includes_registered_report_artifact(tmp_path
         JobOptions(source_language=Language.ENGLISH, translation_target=Language.HEBREW),
     )
 
-    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": True})())
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": True, "has_video": True})(),
+    )
     monkeypatch.setattr("face_blur_yunet.pipeline.extract_audio", lambda src, dst: dst.write_bytes(b"audio") or dst)
 
     pipeline = Pipeline(
@@ -147,14 +161,17 @@ def test_pipeline_missing_audio_marks_job_failed(tmp_path, monkeypatch):
     store = JobStore(tmp_path / "jobs.sqlite")
     job = store.create_job(input_path, tmp_path / "outputs", JobOptions(source_language=Language.ENGLISH))
 
-    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": False})())
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": False, "has_video": True})(),
+    )
 
     pipeline = Pipeline(store, PipelineEngines(transcriber=FakeTranscriber(["price is 500"])))
     pipeline.run(job.id)
 
     loaded = store.get_job(job.id)
     assert loaded.status == JobStatus.FAILED
-    assert "Video has no audio stream" in loaded.error
+    assert "Media has no audio stream" in loaded.error
 
 
 def test_pipeline_face_blur_calls_injected_engine_and_stores_artifact(tmp_path, monkeypatch):
@@ -173,7 +190,10 @@ def test_pipeline_face_blur_calls_injected_engine_and_stores_artifact(tmp_path, 
         dst.write_bytes(b"blurred")
         return {"frames": 1, "detected_frames": 1, "faces": 1}
 
-    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": False})())
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": False, "has_video": True})(),
+    )
 
     pipeline = Pipeline(store, PipelineEngines(face_blur_func=fake_face_blur))
     pipeline.run(job.id)
@@ -198,7 +218,10 @@ def test_pipeline_copies_source_video_to_output_folder(tmp_path, monkeypatch):
         JobOptions(transcript=False, questions=False, subtitles=False),
     )
 
-    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", lambda path: type("Info", (), {"has_audio": False})())
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": False, "has_video": True})(),
+    )
 
     Pipeline(store).run(job.id)
 
@@ -206,4 +229,51 @@ def test_pipeline_copies_source_video_to_output_folder(tmp_path, monkeypatch):
     output_video = tmp_path / "outputs" / f"job-{job.id}" / "video.original.mov"
     assert loaded.status == JobStatus.COMPLETE
     assert loaded.artifacts["source_video"] == str(output_video)
+    assert loaded.artifacts["source_media"] == str(output_video)
     assert output_video.read_bytes() == b"original video"
+
+
+def test_pipeline_processes_mp3_audio_input(tmp_path, monkeypatch):
+    input_path = tmp_path / "input.mp3"
+    input_path.write_bytes(b"original audio")
+    store = JobStore(tmp_path / "jobs.sqlite")
+    job = store.create_job(input_path, tmp_path / "outputs", JobOptions(source_language=Language.ENGLISH))
+
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": True, "has_video": False})(),
+    )
+    monkeypatch.setattr("face_blur_yunet.pipeline.extract_audio", lambda src, dst: dst.write_bytes(b"audio") or dst)
+
+    Pipeline(store, PipelineEngines(transcriber=FakeTranscriber(["audio only works"]))).run(job.id)
+
+    loaded = store.get_job(job.id)
+    output_audio = tmp_path / "outputs" / f"job-{job.id}" / "audio.original.mp3"
+    assert loaded.status == JobStatus.COMPLETE
+    assert loaded.artifacts["source_media"] == str(output_audio)
+    assert loaded.artifacts["source_audio"] == str(output_audio)
+    assert "source_video" not in loaded.artifacts
+    assert output_audio.read_bytes() == b"original audio"
+    assert (tmp_path / "outputs" / f"job-{job.id}" / "transcript.en.txt").exists()
+
+
+def test_pipeline_rejects_face_blur_for_audio_input(tmp_path, monkeypatch):
+    input_path = tmp_path / "input.mp3"
+    input_path.write_bytes(b"original audio")
+    store = JobStore(tmp_path / "jobs.sqlite")
+    job = store.create_job(
+        input_path,
+        tmp_path / "outputs",
+        JobOptions(transcript=False, questions=False, subtitles=False, face_blur=True),
+    )
+
+    monkeypatch.setattr(
+        "face_blur_yunet.pipeline.probe_media",
+        lambda path: type("Info", (), {"has_audio": True, "has_video": False})(),
+    )
+
+    Pipeline(store).run(job.id)
+
+    loaded = store.get_job(job.id)
+    assert loaded.status == JobStatus.FAILED
+    assert "Face blur requires a video file" in loaded.error

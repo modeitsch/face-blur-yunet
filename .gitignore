@@ -7,6 +7,7 @@ outputs/
 work/
 *.sqlite
 *.wav
+*.mp3
 models/
 *.mp4
 *.mov

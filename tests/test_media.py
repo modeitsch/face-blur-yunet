@@ -27,6 +27,28 @@ def test_probe_media_parses_ffprobe_json(monkeypatch, tmp_path):
     assert info.height == 1080
     assert round(info.fps, 2) == 29.97
     assert info.has_audio is True
+    assert info.has_video is True
+
+
+def test_probe_media_accepts_audio_only_file(monkeypatch, tmp_path):
+    audio = tmp_path / "input.mp3"
+    audio.write_bytes(b"fake")
+
+    def fake_run(cmd, check, capture_output, text):
+        payload = {
+            "streams": [{"codec_type": "audio"}],
+            "format": {"duration": "45.25"},
+        }
+        return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(payload), stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    info = probe_media(audio)
+    assert info.duration == 45.25
+    assert info.width == 0
+    assert info.height == 0
+    assert info.fps == 0.0
+    assert info.has_audio is True
+    assert info.has_video is False
 
 
 def test_extract_audio_runs_ffmpeg(monkeypatch, tmp_path):

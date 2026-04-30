@@ -91,6 +91,7 @@ class MediaInfo:
     height: int
     fps: float
     has_audio: bool
+    has_video: bool = True
 
 
 def seconds_to_srt_time(value: float) -> str:

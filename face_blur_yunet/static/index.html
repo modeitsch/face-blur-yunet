@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Video Processing Dashboard</title>
+  <title>Media Processing Dashboard</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -11,19 +11,19 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">Private local workspace</p>
-        <h1>Video Processing Dashboard</h1>
+        <h1>Media Processing Dashboard</h1>
       </div>
       <span class="status-pill idle" id="status-pill">Ready</span>
     </header>
 
     <section class="panel setup-panel">
       <div class="panel-heading">
-        <h2>New Video</h2>
+        <h2>New Media</h2>
         <span class="meta">Outputs save under data/outputs</span>
       </div>
       <form id="job-form">
-        <label class="field wide">Video path
-          <input id="input-path" name="input_path" required placeholder="/Users/me/video.mp4">
+        <label class="field wide">Video or audio path
+          <input id="input-path" name="input_path" required placeholder="/Users/me/media.mp4 or /Users/me/audio.mp3">
         </label>
         <label class="field">Source language
           <select id="source-language">
@@ -40,7 +40,7 @@
           </select>
         </label>
         <label class="check-row"><input id="subtitles" type="checkbox" checked> Export SRT subtitles</label>
-        <label class="check-row"><input id="face-blur" type="checkbox"> Blur faces</label>
+        <label class="check-row"><input id="face-blur" type="checkbox"> Blur faces in video</label>
         <button type="submit" id="create-job">Create Job</button>
       </form>
     </section>
@@ -62,7 +62,7 @@
     </section>
 
     <section class="panel ask-panel">
-      <h2>Ask the Video</h2>
+      <h2>Ask the Transcript</h2>
       <form id="question-form">
         <label class="field wide">Question
           <input id="question" placeholder="Ask a question about the transcript">
@@ -76,7 +76,7 @@
         <button type="submit" disabled id="ask-button">Ask</button>
       </form>
       <div class="answer-card" id="answer-card">
-        <p class="empty-state">Process a video first.</p>
+        <p class="empty-state">Process a media file first.</p>
       </div>
       <pre id="answer-output" class="raw-output" hidden></pre>
     </section>

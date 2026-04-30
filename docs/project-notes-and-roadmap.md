@@ -2,17 +2,18 @@
 
 ## Current Position
 
-This repository is now a local-first video processing dashboard for private client videos. It can create processing jobs from a local video path, transcribe Hebrew or English with a local faster-whisper backend when installed, translate Hebrew to English or English to Hebrew with a local Argos backend when installed, export transcripts and SRT subtitles, answer transcript-grounded questions, optionally blur faces, and save outputs under `data/outputs/job-<id>/`.
+This repository is now a local-first media processing dashboard for private client videos and MP3 audio. It can create processing jobs from a local media path, transcribe Hebrew or English with a local faster-whisper backend when installed, translate Hebrew to English or English to Hebrew with a local Argos backend when installed, export transcripts and SRT subtitles, answer transcript-grounded questions, optionally blur faces for video inputs, and save outputs under `data/outputs/job-<id>/`.
 
-The repo is suitable to keep public as a portfolio/demo project because the tracked files are code, tests, and documentation only. Client videos, generated outputs, local databases, downloaded models, and common video files are ignored by git. Before making the repo public, keep checking that no real client media, transcripts, secrets, API tokens, or private business notes are committed.
+The repo is suitable to keep public as a portfolio/demo project because the tracked files are code, tests, and documentation only. Client media, generated outputs, local databases, downloaded models, and common video/audio files are ignored by git. Before making the repo public, keep checking that no real client media, transcripts, secrets, API tokens, or private business notes are committed.
 
 ## What Is Already Working
 
 - Local FastAPI dashboard at `http://127.0.0.1:8000`.
+- Video and MP3 audio inputs.
 - Clean web client for creating jobs, running processing, viewing output paths, and asking questions.
 - Local transcription integration through `faster-whisper` when available.
 - Local translation integration through `argostranslate` when Hebrew/English packages are installed.
-- Optional YuNet face blurring.
+- Optional YuNet face blurring for video inputs.
 - Output folder per job with source video copy, transcripts, subtitles, indexes, processing report, and blurred video when requested.
 - Tests for request validation, pipeline artifacts, subtitle export, translation, question answering, and face blur logic.
 
@@ -23,6 +24,7 @@ The repo is suitable to keep public as a portfolio/demo project because the trac
 - The question-answering system is deterministic and transcript-grounded, but it is not a full semantic search or LLM answer engine.
 - Translation quality depends on the installed Argos language packages.
 - Whisper model selection and hardware acceleration are not exposed in the UI yet.
+- Face blur is intentionally disabled for audio-only inputs.
 - There is no built-in progress bar for long transcription or face blur jobs.
 - The browser shows local output paths, but it does not open local files directly from the page.
 
@@ -43,11 +45,11 @@ The repo is suitable to keep public as a portfolio/demo project because the trac
 
 ## Public Repository Recommendation
 
-Making this repository public can help attract people because it shows a clear practical tool: local transcription, translation, face privacy, and question answering for client videos. The privacy story is also a strong selling point because client media stays local and generated data is ignored by git.
+Making this repository public can help attract people because it shows a clear practical tool: local transcription, translation, face privacy, and question answering for client media. The privacy story is also a strong selling point because client media stays local and generated data is ignored by git.
 
 Keep the repo public only if these rules stay true:
 
-- No real client videos or transcripts are committed.
+- No real client videos, audio files, or transcripts are committed.
 - No credentials, API keys, or private config files are committed.
 - `data/`, `outputs/`, `work/`, `models/`, local databases, and media files stay ignored.
 - The README says the dashboard is local-first and should not be exposed publicly without authentication.

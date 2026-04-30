@@ -1,27 +1,27 @@
 # Face Blur YuNet
 
-A local-first video processing dashboard for people who need to review client videos, protect identities, and turn spoken Hebrew or English into useful text.
+A local-first media processing dashboard for people who need to review client videos or audio, protect identities in video, and turn spoken Hebrew or English into useful text.
 
-The project started as a small OpenCV YuNet face blurring script. It now includes a private local dashboard that can transcribe videos, translate transcripts, export subtitles, answer questions from the transcript, and optionally create a face-blurred video.
+The project started as a small OpenCV YuNet face blurring script. It now includes a private local dashboard that can transcribe video or MP3 audio, translate transcripts, export subtitles, answer questions from the transcript, and optionally create a face-blurred video.
 
 ## Why This Exists
 
-Many client videos contain sensitive faces, private conversations, or business details. This tool is designed so the video can stay on your own computer while you process it.
+Many client media files contain sensitive faces, private conversations, or business details. This tool is designed so the source file can stay on your own computer while you process it.
 
 - No cloud account is required for the core workflow.
-- Client videos and generated outputs are ignored by git.
+- Client media and generated outputs are ignored by git.
 - The dashboard runs locally at `http://127.0.0.1:8000`.
 - You choose per job whether to translate, export subtitles, or blur faces.
 
 ## Features
 
-- Local web dashboard for video jobs.
-- Hebrew and English transcription with `faster-whisper` when installed.
+- Local web dashboard for video and MP3 audio jobs.
+- Hebrew and English transcription for video/audio sources with `faster-whisper` when installed.
 - Hebrew to English and English to Hebrew translation with `argostranslate` when installed.
 - Transcript and SRT subtitle exports.
 - Transcript-grounded question answering.
-- Optional face blurring with OpenCV YuNet.
-- Original source video copied into each job output folder.
+- Optional face blurring for video files with OpenCV YuNet.
+- Original source media copied into each job output folder.
 - Processing report for each job.
 - Existing command-line face blur script still works.
 
@@ -37,6 +37,7 @@ Typical outputs include:
 
 ```text
 video.original.mp4
+audio.original.mp3
 video.face-blurred.mp4
 transcript.en.txt
 transcript.he.txt
@@ -101,16 +102,16 @@ http://127.0.0.1:8000
 
 ## Dashboard Workflow
 
-1. Paste a local video path.
+1. Paste a local video or MP3 audio path.
 2. Choose the source language, or use auto detect.
 3. Choose whether to translate the transcript.
 4. Choose whether to export subtitles.
-5. Choose whether to blur faces.
+5. Choose whether to blur faces for video inputs.
 6. Create the job.
 7. Run processing.
 8. Review output paths and ask questions about the transcript.
 
-If your video path includes wrapping quotes, the dashboard strips them automatically.
+If your media path includes wrapping quotes, the dashboard strips them automatically.
 
 ## Command-Line Face Blur
 
@@ -148,7 +149,7 @@ Lower thresholds may catch more side faces or small faces, but can also blur non
 
 ```mermaid
 flowchart LR
-  A["Local video path"] --> B["Dashboard API"]
+  A["Local video or MP3 path"] --> B["Dashboard API"]
   B --> C["Job store"]
   B --> D["Processing pipeline"]
   D --> E["Audio extraction with ffmpeg"]
@@ -180,7 +181,7 @@ The repository ignores:
 - `work/`
 - `models/`
 - local SQLite files
-- common video formats
+- common video and audio formats
 
 Always review generated videos before sharing them. Automatic face detection can miss faces, especially if they are tiny, heavily rotated, covered, or motion blurred.
 

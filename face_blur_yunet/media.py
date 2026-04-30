@@ -35,16 +35,17 @@ def probe_media(path: Path) -> MediaInfo:
     )
     payload = json.loads(result.stdout)
     video_stream = next((stream for stream in payload.get("streams", []) if stream.get("codec_type") == "video"), None)
-    if video_stream is None:
-        raise ValueError(f"No video stream found in {path}")
     has_audio = any(stream.get("codec_type") == "audio" for stream in payload.get("streams", []))
+    if video_stream is None and not has_audio:
+        raise ValueError(f"No audio or video stream found in {path}")
     return MediaInfo(
         path=path,
         duration=float(payload.get("format", {}).get("duration") or 0.0),
-        width=int(video_stream.get("width") or 0),
-        height=int(video_stream.get("height") or 0),
-        fps=_parse_fps(video_stream.get("avg_frame_rate") or "0"),
+        width=int(video_stream.get("width") or 0) if video_stream else 0,
+        height=int(video_stream.get("height") or 0) if video_stream else 0,
+        fps=_parse_fps(video_stream.get("avg_frame_rate") or "0") if video_stream else 0.0,
         has_audio=has_audio,
+        has_video=video_stream is not None,
     )
 
 

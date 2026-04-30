@@ -40,9 +40,13 @@ class Pipeline:
             self.store.update_status(job.id, JobStatus.VALIDATING)
             media_info = probe_media(job.input_path)
             if job.options.requires_audio and not media_info.has_audio:
-                raise RuntimeError("Video has no audio stream")
-            source_video_path = _copy_source_video(job.input_path, output_dir)
-            self._set_artifact(job.id, "source_video", source_video_path)
+                raise RuntimeError("Media has no audio stream")
+            source_media_path = _copy_source_media(job.input_path, output_dir, media_info.has_video)
+            self._set_artifact(job.id, "source_media", source_media_path)
+            if media_info.has_video:
+                self._set_artifact(job.id, "source_video", source_media_path)
+            else:
+                self._set_artifact(job.id, "source_audio", source_media_path)
 
             source_segments: list[TranscriptSegment] = []
             source_language = job.options.source_language
@@ -91,6 +95,8 @@ class Pipeline:
                     self._set_artifact(job.id, "translated_subtitles", translated_srt_path)
 
             if job.options.face_blur:
+                if not media_info.has_video:
+                    raise RuntimeError("Face blur requires a video file")
                 self.store.update_status(job.id, JobStatus.BLURRING_FACES)
                 blurred_video_path = output_dir / "video.face-blurred.mp4"
                 face_blur_func = self.engines.face_blur_func or _blur_video
@@ -140,8 +146,10 @@ def _blur_video(input_path: Path, output_path: Path, options: BlurOptions) -> di
     return blur_video(input_path, output_path, options=options)
 
 
-def _copy_source_video(input_path: Path, output_dir: Path) -> Path:
-    suffix = input_path.suffix or ".mp4"
-    output_path = output_dir / f"video.original{suffix}"
+def _copy_source_media(input_path: Path, output_dir: Path, has_video: bool) -> Path:
+    fallback_suffix = ".mp4" if has_video else ".mp3"
+    prefix = "video" if has_video else "audio"
+    suffix = input_path.suffix or fallback_suffix
+    output_path = output_dir / f"{prefix}.original{suffix}"
     shutil.copy2(input_path, output_path)
     return output_path

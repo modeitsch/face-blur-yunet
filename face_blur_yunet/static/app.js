@@ -225,7 +225,7 @@ jobForm.addEventListener('submit', async (event) => {
     setProcessingState(false);
     renderJob(payload);
     clearNode(answerCard);
-    appendText(answerCard, 'p', 'Process the video first.', 'empty-state');
+    appendText(answerCard, 'p', 'Process the media file first.', 'empty-state');
   } catch (error) {
     currentJobId = null;
     currentJob = null;
