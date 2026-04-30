@@ -34,6 +34,24 @@ def test_create_job_preserves_false_boolean_options(tmp_path):
     assert options["face_blur"] is False
 
 
+def test_create_job_strips_wrapping_quotes_from_input_path(tmp_path):
+    app = create_app(tmp_path)
+    client = TestClient(app)
+    input_path = tmp_path / "input with spaces.mp4"
+    input_path.write_bytes(b"fake")
+
+    response = client.post(
+        "/api/jobs",
+        json={
+            "input_path": f' "{input_path}" ',
+            "source_language": "en",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["input_path"] == str(input_path)
+
+
 def test_create_job_rejects_invalid_boolean_options(tmp_path):
     app = create_app(tmp_path)
     client = TestClient(app)

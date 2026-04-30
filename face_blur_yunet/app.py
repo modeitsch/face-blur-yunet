@@ -45,7 +45,7 @@ def create_app(base_dir: Path) -> FastAPI:
             subtitles=payload.subtitles,
             face_blur=payload.face_blur,
         )
-        job = store.create_job(Path(payload.input_path), base_dir / "outputs", options)
+        job = store.create_job(Path(_clean_input_path(payload.input_path)), base_dir / "outputs", options)
         return _job_to_dict(job)
 
     @app.get("/api/jobs/{job_id}")
@@ -98,6 +98,13 @@ def _optional_argos_translator() -> Translator | None:
         return ArgosTranslator()
     except RuntimeError:
         return None
+
+
+def _clean_input_path(value: str) -> str:
+    path = value.strip()
+    if len(path) >= 2 and path[0] == path[-1] and path[0] in {"'", '"'}:
+        return path[1:-1].strip()
+    return path
 
 
 def _get_job_or_404(store: JobStore, job_id: int) -> StoredJob:
