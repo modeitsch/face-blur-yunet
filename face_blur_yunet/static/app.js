@@ -1,9 +1,18 @@
 let currentJobId = null;
+let currentJob = null;
+let isProcessing = false;
 
+const jobForm = document.querySelector('#job-form');
+const questionForm = document.querySelector('#question-form');
 const jobOutput = document.querySelector('#job-output');
 const runButton = document.querySelector('#run-job');
 const askButton = document.querySelector('#ask-button');
 const answerOutput = document.querySelector('#answer-output');
+const statusPill = document.querySelector('#status-pill');
+const jobSummary = document.querySelector('#job-summary');
+const artifactList = document.querySelector('#artifact-list');
+const answerCard = document.querySelector('#answer-card');
+const createButton = document.querySelector('#create-job');
 
 async function fetchJson(url, options) {
   let payload = null;
@@ -23,7 +32,176 @@ async function fetchJson(url, options) {
   return payload;
 }
 
-document.querySelector('#job-form').addEventListener('submit', async (event) => {
+function clearNode(node) {
+  while (node.firstChild) {
+    node.removeChild(node.firstChild);
+  }
+}
+
+function appendText(parent, tagName, text, className = '') {
+  const child = document.createElement(tagName);
+  child.textContent = text;
+  if (className) {
+    child.className = className;
+  }
+  parent.appendChild(child);
+  return child;
+}
+
+function setStatus(label, tone = 'idle') {
+  statusPill.textContent = label;
+  statusPill.className = `status-pill ${tone}`;
+}
+
+function statusTone(status) {
+  if (status === 'complete') return 'success';
+  if (status === 'failed') return 'error';
+  if (status === 'running' || status === 'processing') return 'active';
+  if (status === 'queued') return 'queued';
+  return 'idle';
+}
+
+function titleCase(value) {
+  if (!value) return 'Unknown';
+  return value.replace(/[_-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function canAsk(job) {
+  return Boolean(job?.status === 'complete' && job?.artifacts?.transcript_index);
+}
+
+function syncButtons() {
+  const hasJob = currentJobId !== null;
+  createButton.disabled = isProcessing;
+  runButton.disabled = isProcessing || !hasJob || currentJob?.status === 'complete';
+  askButton.disabled = isProcessing || !canAsk(currentJob);
+}
+
+function renderEmptyJob(message = 'No job yet.') {
+  clearNode(jobSummary);
+  appendText(jobSummary, 'p', message, 'empty-state');
+  jobOutput.hidden = true;
+  renderArtifacts({});
+  setStatus('Ready', 'idle');
+  syncButtons();
+}
+
+function renderJob(job) {
+  currentJob = job;
+  currentJobId = job?.id ?? null;
+  clearNode(jobSummary);
+
+  if (!job) {
+    renderEmptyJob();
+    return;
+  }
+
+  const header = document.createElement('div');
+  header.className = 'summary-header';
+  appendText(header, 'strong', `Job ${job.id}`);
+  appendText(header, 'span', titleCase(job.status), `mini-pill ${statusTone(job.status)}`);
+  jobSummary.appendChild(header);
+
+  const grid = document.createElement('dl');
+  grid.className = 'summary-grid';
+  addSummaryItem(grid, 'Source', job.input_path || 'Unknown');
+  addSummaryItem(grid, 'Language', titleCase(job.source_language || 'auto'));
+  addSummaryItem(grid, 'Translate', job.translation_target ? titleCase(job.translation_target) : 'None');
+  addSummaryItem(grid, 'Subtitles', job.subtitles ? 'Yes' : 'No');
+  addSummaryItem(grid, 'Face blur', job.face_blur ? 'Yes' : 'No');
+  jobSummary.appendChild(grid);
+
+  if (job.error) {
+    appendText(jobSummary, 'p', job.error, 'error-message');
+  }
+
+  jobOutput.textContent = JSON.stringify(job, null, 2);
+  jobOutput.hidden = true;
+  renderArtifacts(job.artifacts || {});
+  setStatus(titleCase(job.status), statusTone(job.status));
+  syncButtons();
+}
+
+function addSummaryItem(parent, label, value) {
+  const item = document.createElement('div');
+  const term = document.createElement('dt');
+  const description = document.createElement('dd');
+  term.textContent = label;
+  description.textContent = value;
+  item.append(term, description);
+  parent.appendChild(item);
+}
+
+function renderArtifacts(artifacts) {
+  clearNode(artifactList);
+  const entries = Object.entries(artifacts || {});
+
+  if (entries.length === 0) {
+    appendText(artifactList, 'li', 'No output files yet.', 'empty-state');
+    return;
+  }
+
+  for (const [key, path] of entries) {
+    const item = document.createElement('li');
+    const label = appendText(item, 'span', titleCase(key), 'artifact-name');
+    label.title = key;
+    appendText(item, 'code', path, 'artifact-path');
+    artifactList.appendChild(item);
+  }
+}
+
+function renderError(target, message) {
+  clearNode(target);
+  appendText(target, 'p', message, 'error-message');
+}
+
+function secondsToClock(value) {
+  if (!Number.isFinite(value)) return '00:00';
+  const total = Math.max(0, Math.round(value));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function renderAnswer(payload) {
+  clearNode(answerCard);
+
+  appendText(answerCard, 'p', payload.answer || 'No answer found in the transcript.', 'answer-text');
+
+  if (payload.confidence) {
+    appendText(answerCard, 'p', `Confidence: ${titleCase(payload.confidence)}`, 'answer-meta');
+  }
+
+  const excerpts = payload.excerpts || [];
+  if (excerpts.length > 0) {
+    const list = document.createElement('ul');
+    list.className = 'excerpt-list';
+    for (const excerpt of excerpts) {
+      const item = document.createElement('li');
+      const range = `${secondsToClock(excerpt.start)}-${secondsToClock(excerpt.end)}`;
+      appendText(item, 'span', range, 'excerpt-time');
+      appendText(item, 'p', excerpt.text || '', 'excerpt-text');
+      list.appendChild(item);
+    }
+    answerCard.appendChild(list);
+  }
+
+  answerOutput.textContent = JSON.stringify(payload, null, 2);
+}
+
+function setProcessingState(active, label = 'Processing') {
+  isProcessing = active;
+  if (active) {
+    setStatus(label, 'active');
+  } else if (currentJob) {
+    setStatus(titleCase(currentJob.status), statusTone(currentJob.status));
+  } else {
+    setStatus('Ready', 'idle');
+  }
+  syncButtons();
+}
+
+jobForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const body = {
     input_path: document.querySelector('#input-path').value,
@@ -34,56 +212,82 @@ document.querySelector('#job-form').addEventListener('submit', async (event) => 
   };
 
   try {
-    const payload = await fetchJson('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    setProcessingState(true, 'Creating');
+    const payload = await fetchJson('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
     if (!payload.id) {
       throw new Error('Job response did not include an id.');
     }
 
-    currentJobId = payload.id;
-    jobOutput.textContent = JSON.stringify(payload, null, 2);
-    runButton.disabled = false;
-    askButton.disabled = true;
+    setProcessingState(false);
+    renderJob(payload);
+    clearNode(answerCard);
+    appendText(answerCard, 'p', 'Process the video first.', 'empty-state');
   } catch (error) {
     currentJobId = null;
-    runButton.disabled = true;
-    askButton.disabled = true;
-    jobOutput.textContent = error.message;
+    currentJob = null;
+    setProcessingState(false);
+    renderEmptyJob();
+    renderError(jobSummary, error.message);
+    syncButtons();
   }
 });
 
 runButton.addEventListener('click', async () => {
-  runButton.disabled = true;
-  askButton.disabled = true;
-  jobOutput.textContent = 'Processing...';
+  if (currentJobId === null) return;
+
+  setProcessingState(true);
+  clearNode(answerCard);
+  appendText(answerCard, 'p', 'Processing transcript...', 'empty-state');
 
   try {
     const payload = await fetchJson(`/api/jobs/${currentJobId}/run`, { method: 'POST' });
+    setProcessingState(false);
+    renderJob(payload);
+
     if (payload.status === 'failed') {
-      jobOutput.textContent = payload.error || JSON.stringify(payload, null, 2);
-      runButton.disabled = false;
+      renderError(answerCard, payload.error || 'Processing failed.');
       return;
     }
 
-    jobOutput.textContent = JSON.stringify(payload, null, 2);
-    askButton.disabled = !(payload.status === 'complete' && payload.artifacts?.transcript_index);
-    runButton.disabled = payload.status === 'complete';
+    if (canAsk(payload)) {
+      clearNode(answerCard);
+      appendText(answerCard, 'p', 'Transcript is ready for questions.', 'empty-state');
+    }
   } catch (error) {
-    jobOutput.textContent = error.message;
-    runButton.disabled = currentJobId === null;
+    setProcessingState(false);
+    renderError(jobSummary, error.message);
+    syncButtons();
   }
 });
 
-document.querySelector('#question-form').addEventListener('submit', async (event) => {
+questionForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (currentJobId === null) return;
+
   const body = {
     question: document.querySelector('#question').value,
     answer_language: document.querySelector('#answer-language').value
   };
 
   try {
-    const payload = await fetchJson(`/api/jobs/${currentJobId}/questions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    answerOutput.textContent = JSON.stringify(payload, null, 2);
+    askButton.disabled = true;
+    clearNode(answerCard);
+    appendText(answerCard, 'p', 'Finding the answer...', 'empty-state');
+    const payload = await fetchJson(`/api/jobs/${currentJobId}/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    renderAnswer(payload);
   } catch (error) {
-    answerOutput.textContent = error.message;
+    renderError(answerCard, error.message);
+  } finally {
+    syncButtons();
   }
 });
+
+renderEmptyJob();

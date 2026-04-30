@@ -8,34 +8,77 @@
 </head>
 <body>
   <main class="shell">
-    <section class="panel">
-      <h1>Video Processing Dashboard</h1>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Private local workspace</p>
+        <h1>Video Processing Dashboard</h1>
+      </div>
+      <span class="status-pill idle" id="status-pill">Ready</span>
+    </header>
+
+    <section class="panel setup-panel">
+      <div class="panel-heading">
+        <h2>New Video</h2>
+        <span class="meta">Outputs save under data/outputs</span>
+      </div>
       <form id="job-form">
-        <label>Video path <input id="input-path" name="input_path" required placeholder="/Users/me/video.mp4"></label>
-        <label>Source language
-          <select id="source-language"><option value="auto">Auto</option><option value="he">Hebrew</option><option value="en">English</option></select>
+        <label class="field wide">Video path
+          <input id="input-path" name="input_path" required placeholder="/Users/me/video.mp4">
         </label>
-        <label>Translate to
-          <select id="translation-target"><option value="">None</option><option value="en">English</option><option value="he">Hebrew</option></select>
+        <label class="field">Source language
+          <select id="source-language">
+            <option value="auto">Auto detect</option>
+            <option value="he">Hebrew</option>
+            <option value="en">English</option>
+          </select>
         </label>
-        <label><input id="subtitles" type="checkbox" checked> Export SRT subtitles</label>
-        <label><input id="face-blur" type="checkbox"> Blur faces</label>
-        <button type="submit">Create Job</button>
+        <label class="field">Translate to
+          <select id="translation-target">
+            <option value="">No translation</option>
+            <option value="en">English</option>
+            <option value="he">Hebrew</option>
+          </select>
+        </label>
+        <label class="check-row"><input id="subtitles" type="checkbox" checked> Export SRT subtitles</label>
+        <label class="check-row"><input id="face-blur" type="checkbox"> Blur faces</label>
+        <button type="submit" id="create-job">Create Job</button>
       </form>
     </section>
-    <section class="panel">
+
+    <section class="panel status-panel">
       <h2>Current Job</h2>
-      <pre id="job-output">No job yet.</pre>
-      <button id="run-job" disabled>Run Job</button>
+      <div class="job-summary" id="job-summary">
+        <p class="empty-state">No job yet.</p>
+      </div>
+      <pre id="job-output" class="raw-output" hidden></pre>
+      <button id="run-job" disabled>Run Processing</button>
     </section>
-    <section class="panel">
+
+    <section class="panel artifacts-panel">
+      <h2>Output Files</h2>
+      <ul class="artifact-list" id="artifact-list">
+        <li class="empty-state">No output files yet.</li>
+      </ul>
+    </section>
+
+    <section class="panel ask-panel">
       <h2>Ask the Video</h2>
       <form id="question-form">
-        <input id="question" placeholder="Ask a question about the transcript">
-        <select id="answer-language"><option value="en">English</option><option value="he">Hebrew</option></select>
+        <label class="field wide">Question
+          <input id="question" placeholder="Ask a question about the transcript">
+        </label>
+        <label class="field">Answer language
+          <select id="answer-language">
+            <option value="en">English</option>
+            <option value="he">Hebrew</option>
+          </select>
+        </label>
         <button type="submit" disabled id="ask-button">Ask</button>
       </form>
-      <pre id="answer-output">Process a video first.</pre>
+      <div class="answer-card" id="answer-card">
+        <p class="empty-state">Process a video first.</p>
+      </div>
+      <pre id="answer-output" class="raw-output" hidden></pre>
     </section>
   </main>
   <script src="/static/app.js"></script>
