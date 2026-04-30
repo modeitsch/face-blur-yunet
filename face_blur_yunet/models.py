@@ -1,17 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum
 from pathlib import Path
 
 
-class Language(StrEnum):
+class Language(str, Enum):
     AUTO = "auto"
     HEBREW = "he"
     ENGLISH = "en"
 
 
-class JobStatus(StrEnum):
+class JobStatus(str, Enum):
     QUEUED = "queued"
     VALIDATING = "validating"
     EXTRACTING_AUDIO = "extracting_audio"
