@@ -11,9 +11,10 @@ from pydantic import BaseModel
 
 from face_blur_yunet.jobs import JobStore, StoredJob
 from face_blur_yunet.models import JobOptions, Language, QuestionAnswer
-from face_blur_yunet.pipeline import Pipeline
+from face_blur_yunet.pipeline import Pipeline, PipelineEngines
 from face_blur_yunet.question_answering import answer_from_chunks
 from face_blur_yunet.transcript_index import load_index
+from face_blur_yunet.translation import ArgosTranslator, Translator
 
 
 class CreateJobRequest(BaseModel):
@@ -54,7 +55,7 @@ def create_app(base_dir: Path) -> FastAPI:
     @app.post("/api/jobs/{job_id}/run")
     def run_job(job_id: int) -> dict[str, Any]:
         _get_job_or_404(store, job_id)
-        Pipeline(store).run(job_id)
+        Pipeline(store, _default_pipeline_engines()).run(job_id)
         return _job_to_dict(_get_job_or_404(store, job_id))
 
     @app.post("/api/jobs/{job_id}/questions")
@@ -86,6 +87,17 @@ def create_app(base_dir: Path) -> FastAPI:
 
 def create_default_app() -> FastAPI:
     return create_app(Path("data"))
+
+
+def _default_pipeline_engines() -> PipelineEngines:
+    return PipelineEngines(translator=_optional_argos_translator())
+
+
+def _optional_argos_translator() -> Translator | None:
+    try:
+        return ArgosTranslator()
+    except RuntimeError:
+        return None
 
 
 def _get_job_or_404(store: JobStore, job_id: int) -> StoredJob:
