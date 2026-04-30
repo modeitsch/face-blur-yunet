@@ -4,8 +4,12 @@ from face_blur_yunet.face_blur import BlurOptions, clamp_box, blur_face_only
 
 
 def test_clamp_box_keeps_box_inside_frame():
-    assert clamp_box((-10.2, 5.4, 50.1, 20.2), 100, 80) == (0, 5, 50, 20)
+    assert clamp_box((-10.2, 5.4, 50.1, 20.2), 100, 80) == (0, 5, 40, 20)
     assert clamp_box((90, 70, 30, 30), 100, 80) == (90, 70, 10, 10)
+
+
+def test_clamp_box_returns_empty_box_when_fully_left_of_frame():
+    assert clamp_box((-50, 10, 20, 20), 100, 80) == (0, 10, 0, 20)
 
 
 def test_clamp_box_applies_padding_inside_frame():

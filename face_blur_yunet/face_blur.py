@@ -43,13 +43,11 @@ def clamp_box(
         y -= pad_y
         w += pad_x * 2
         h += pad_y * 2
-    x = max(0, x)
-    y = max(0, y)
-    if x >= frame_w or y >= frame_h:
-        return min(x, frame_w), min(y, frame_h), 0, 0
-    w = min(frame_w - x, max(1, w))
-    h = min(frame_h - y, max(1, h))
-    return x, y, w, h
+    x1 = max(0, min(frame_w, x))
+    y1 = max(0, min(frame_h, y))
+    x2 = max(0, min(frame_w, x + max(1, w)))
+    y2 = max(0, min(frame_h, y + max(1, h)))
+    return x1, y1, max(0, x2 - x1), max(0, y2 - y1)
 
 
 def _odd_kernel(value: int) -> int:
