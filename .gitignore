@@ -1,6 +1,11 @@
 .venv/
 __pycache__/
 *.pyc
+data/
+outputs/
+work/
+*.sqlite
+*.wav
 models/
 *.mp4
 *.mov

@@ -9,7 +9,9 @@ The script detects faces frame by frame, blurs only the detected face area with 
 - Python 3.9+
 - `ffmpeg` available on your `PATH`
 
-Install Python dependencies:
+## Dashboard Setup
+
+Create a virtual environment and install the dashboard dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -17,7 +19,35 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Start the local dashboard server:
+
+```bash
+python3 -m uvicorn face_blur_yunet.app:create_default_app --factory --reload
+```
+
+The dashboard stores working files locally under ignored project directories.
+
+## Optional Transcription Backend
+
+Install `faster-whisper` to enable local transcription support:
+
+```bash
+pip install faster-whisper
+```
+
+## Optional Translation Backend
+
+Install `argostranslate` to enable local translation support:
+
+```bash
+pip install argostranslate
+```
+
+Hebrew and English language packages must also be installed locally for translation.
+
 ## Usage
+
+The existing face blur CLI remains compatible:
 
 ```bash
 python blur_faces.py input.mp4 output_blurred.mp4
@@ -42,6 +72,8 @@ Lower thresholds may catch more side faces or small faces, but can also blur non
 ## Notes
 
 Always review the output before sharing. Automatic face detection can miss faces, especially if they are tiny, heavily rotated, covered, or motion blurred.
+
+Files stay local unless you configure a future cloud provider.
 
 ## Model
 
