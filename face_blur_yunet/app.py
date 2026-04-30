@@ -6,12 +6,21 @@ from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
 from face_blur_yunet.jobs import JobStore, StoredJob
 from face_blur_yunet.models import JobOptions, Language, QuestionAnswer
 from face_blur_yunet.pipeline import Pipeline
 from face_blur_yunet.question_answering import answer_from_chunks
 from face_blur_yunet.transcript_index import load_index
+
+
+class CreateJobRequest(BaseModel):
+    input_path: str
+    source_language: Language = Language.AUTO
+    translation_target: Language | None = None
+    subtitles: bool = True
+    face_blur: bool = False
 
 
 def create_app(base_dir: Path) -> FastAPI:
@@ -25,18 +34,14 @@ def create_app(base_dir: Path) -> FastAPI:
         return {"ok": True}
 
     @app.post("/api/jobs")
-    def create_job(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
-        input_path = payload.get("input_path")
-        if not input_path:
-            raise HTTPException(status_code=422, detail="input_path is required")
-
+    def create_job(payload: CreateJobRequest) -> dict[str, Any]:
         options = JobOptions(
-            source_language=_language_or_default(payload.get("source_language"), Language.AUTO),
-            translation_target=_language_or_none(payload.get("translation_target")),
-            subtitles=bool(payload.get("subtitles", True)),
-            face_blur=bool(payload.get("face_blur", False)),
+            source_language=payload.source_language,
+            translation_target=payload.translation_target,
+            subtitles=payload.subtitles,
+            face_blur=payload.face_blur,
         )
-        job = store.create_job(Path(input_path), base_dir / "outputs", options)
+        job = store.create_job(Path(payload.input_path), base_dir / "outputs", options)
         return _job_to_dict(job)
 
     @app.get("/api/jobs/{job_id}")
