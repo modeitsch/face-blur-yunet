@@ -134,6 +134,25 @@ form {
   gap: 12px;
 }
 
+.source-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-hints span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #dbe3ed;
+  border-radius: 999px;
+  background: #f9fbfd;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 750;
+}
+
 .compact-grid {
   grid-template-columns: minmax(180px, 260px) minmax(120px, 180px);
   align-items: end;

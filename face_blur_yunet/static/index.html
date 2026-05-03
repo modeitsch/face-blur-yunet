@@ -16,6 +16,7 @@
       <div class="topbar-actions">
         <span class="media-chip">Video</span>
         <span class="media-chip">Audio</span>
+        <span class="media-chip">YouTube</span>
         <span class="status-pill idle" id="status-pill">Ready</span>
       </div>
     </header>
@@ -32,6 +33,11 @@
         <label class="field wide">Media path or YouTube link
           <input id="input-path" name="input_path" required placeholder="/Users/me/client-call.mp4, /Users/me/interview.mp3, or https://youtu.be/...">
         </label>
+        <div class="source-hints wide" aria-label="Supported sources">
+          <span>Local video path</span>
+          <span>Local MP3 path</span>
+          <span>Paste YouTube link</span>
+        </div>
         <div class="field-grid wide">
           <label class="field">Source language
             <select id="source-language">
