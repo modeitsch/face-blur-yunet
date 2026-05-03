@@ -12,7 +12,7 @@ from face_blur_yunet.models import JobOptions, JobStatus, Language, QuestionAnsw
 @dataclass(frozen=True)
 class StoredJob:
     id: int
-    input_path: Path
+    input_path: str
     output_dir: Path
     options: JobOptions
     status: JobStatus
@@ -160,7 +160,7 @@ def _options_from_json(value: str) -> JobOptions:
 def _row_to_job(row: sqlite3.Row) -> StoredJob:
     return StoredJob(
         id=row["id"],
-        input_path=Path(row["input_path"]),
+        input_path=row["input_path"],
         output_dir=Path(row["output_dir"]),
         options=_options_from_json(row["options_json"]),
         status=JobStatus(row["status"]),

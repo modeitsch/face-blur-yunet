@@ -6,8 +6,11 @@ This project runs locally on macOS and Windows. The dashboard itself is a FastAP
 
 - Video files with audio, such as `.mp4`, `.mov`, `.mkv`, `.avi`, and `.webm`
 - MP3 audio files
+- YouTube links
 
 Face blur only applies to video files. MP3 files can be transcribed, translated, exported as text/SRT, and used for transcript questions.
+
+YouTube links are downloaded locally with `yt-dlp` before processing. Only download media you have the rights or permission to process.
 
 ## macOS Apple Silicon
 

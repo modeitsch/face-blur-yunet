@@ -19,6 +19,7 @@ dependencies = [
   "opencv-python-headless",
   "python-multipart",
   "uvicorn",
+  "yt-dlp",
 ]
 
 [project.optional-dependencies]

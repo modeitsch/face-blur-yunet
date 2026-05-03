@@ -257,6 +257,54 @@ def test_pipeline_processes_mp3_audio_input(tmp_path, monkeypatch):
     assert (tmp_path / "outputs" / f"job-{job.id}" / "transcript.en.txt").exists()
 
 
+def test_pipeline_downloads_youtube_url_before_processing(tmp_path, monkeypatch):
+    downloaded_path = tmp_path / "downloaded.mp4"
+    downloaded_path.write_bytes(b"downloaded video")
+    store = JobStore(tmp_path / "jobs.sqlite")
+    job = store.create_job(
+        "https://www.youtube.com/watch?v=abc123",
+        tmp_path / "outputs",
+        JobOptions(source_language=Language.ENGLISH),
+    )
+    downloads = []
+    probed_paths = []
+    extracted_sources = []
+
+    def fake_downloader(url, output_dir):
+        downloads.append((url, output_dir))
+        return downloaded_path
+
+    def fake_probe_media(path):
+        probed_paths.append(path)
+        return type("Info", (), {"has_audio": True, "has_video": True})()
+
+    def fake_extract_audio(src, dst):
+        extracted_sources.append(src)
+        dst.write_bytes(b"audio")
+        return dst
+
+    monkeypatch.setattr("face_blur_yunet.pipeline.probe_media", fake_probe_media)
+    monkeypatch.setattr("face_blur_yunet.pipeline.extract_audio", fake_extract_audio)
+
+    Pipeline(
+        store,
+        PipelineEngines(
+            transcriber=FakeTranscriber(["youtube works"]),
+            media_downloader=fake_downloader,
+        ),
+    ).run(job.id)
+
+    loaded = store.get_job(job.id)
+    output_dir = tmp_path / "outputs" / f"job-{job.id}"
+    assert loaded.status == JobStatus.COMPLETE
+    assert downloads == [("https://www.youtube.com/watch?v=abc123", output_dir)]
+    assert probed_paths == [downloaded_path]
+    assert extracted_sources == [downloaded_path]
+    assert loaded.artifacts["downloaded_media"] == str(downloaded_path)
+    assert loaded.artifacts["source_media"] == str(output_dir / "video.original.mp4")
+    assert (output_dir / "video.original.mp4").read_bytes() == b"downloaded video"
+
+
 def test_pipeline_rejects_face_blur_for_audio_input(tmp_path, monkeypatch):
     input_path = tmp_path / "input.mp3"
     input_path.write_bytes(b"original audio")

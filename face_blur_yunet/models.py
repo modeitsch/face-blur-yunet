@@ -18,6 +18,7 @@ class Language(StringEnum):
 class JobStatus(StringEnum):
     QUEUED = "queued"
     VALIDATING = "validating"
+    DOWNLOADING_MEDIA = "downloading_media"
     EXTRACTING_AUDIO = "extracting_audio"
     TRANSCRIBING = "transcribing"
     INDEXING_TRANSCRIPT = "indexing_transcript"

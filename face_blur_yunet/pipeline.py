@@ -9,6 +9,7 @@ from typing import Callable
 from face_blur_yunet.face_blur import BlurOptions, blur_video
 from face_blur_yunet.jobs import JobStore
 from face_blur_yunet.media import extract_audio, probe_media
+from face_blur_yunet.media_download import download_youtube_media, is_youtube_url
 from face_blur_yunet.models import JobStatus, Language, TranscriptSegment
 from face_blur_yunet.subtitles import write_srt, write_transcript
 from face_blur_yunet.transcript_index import index_transcript
@@ -16,6 +17,7 @@ from face_blur_yunet.transcription import Transcriber, transcribe_audio
 from face_blur_yunet.translation import Translator, translate_segments
 
 FaceBlurFunc = Callable[[Path, Path, BlurOptions], dict[str, int]]
+MediaDownloaderFunc = Callable[[str, Path], Path]
 
 
 @dataclass(frozen=True)
@@ -23,6 +25,7 @@ class PipelineEngines:
     transcriber: Transcriber | None = None
     translator: Translator | None = None
     face_blur_func: FaceBlurFunc | None = None
+    media_downloader: MediaDownloaderFunc | None = None
 
 
 class Pipeline:
@@ -38,10 +41,11 @@ class Pipeline:
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
             self.store.update_status(job.id, JobStatus.VALIDATING)
-            media_info = probe_media(job.input_path)
+            processing_input_path = self._prepare_input_media(job.id, str(job.input_path), output_dir)
+            media_info = probe_media(processing_input_path)
             if job.options.requires_audio and not media_info.has_audio:
                 raise RuntimeError("Media has no audio stream")
-            source_media_path = _copy_source_media(job.input_path, output_dir, media_info.has_video)
+            source_media_path = _copy_source_media(processing_input_path, output_dir, media_info.has_video)
             self._set_artifact(job.id, "source_media", source_media_path)
             if media_info.has_video:
                 self._set_artifact(job.id, "source_video", source_media_path)
@@ -52,7 +56,7 @@ class Pipeline:
             source_language = job.options.source_language
             if job.options.requires_audio:
                 self.store.update_status(job.id, JobStatus.EXTRACTING_AUDIO)
-                audio_path = extract_audio(job.input_path, output_dir / "audio.wav")
+                audio_path = extract_audio(processing_input_path, output_dir / "audio.wav")
                 self._set_artifact(job.id, "audio", audio_path)
 
                 self.store.update_status(job.id, JobStatus.TRANSCRIBING)
@@ -101,7 +105,7 @@ class Pipeline:
                 blurred_video_path = output_dir / "video.face-blurred.mp4"
                 face_blur_func = self.engines.face_blur_func or _blur_video
                 face_blur_func(
-                    job.input_path,
+                    processing_input_path,
                     blurred_video_path,
                     BlurOptions(
                         score_threshold=job.options.score_threshold,
@@ -120,6 +124,15 @@ class Pipeline:
 
     def _set_artifact(self, job_id: int, name: str, path: Path) -> None:
         self.store.set_artifact(job_id, name, path)
+
+    def _prepare_input_media(self, job_id: int, input_value: str, output_dir: Path) -> Path:
+        if is_youtube_url(input_value):
+            self.store.update_status(job_id, JobStatus.DOWNLOADING_MEDIA)
+            media_downloader = self.engines.media_downloader or download_youtube_media
+            downloaded_path = media_downloader(input_value, output_dir)
+            self._set_artifact(job_id, "downloaded_media", downloaded_path)
+            return downloaded_path
+        return Path(input_value)
 
     def _write_processing_report(self, job_id: int, output_dir: Path, error: str | None) -> None:
         report_path = output_dir / "processing-report.json"

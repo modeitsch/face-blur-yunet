@@ -165,6 +165,7 @@ function renderArtifacts(artifacts) {
 function artifactLabel(key) {
   const labels = {
     audio: 'Working audio',
+    downloaded_media: 'Downloaded media',
     face_blurred_video: 'Blurred video',
     processing_report: 'Processing report',
     source_audio: 'Original audio',

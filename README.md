@@ -15,13 +15,14 @@ Many client media files contain sensitive faces, private conversations, or busin
 
 ## Features
 
-- Local web dashboard for video and MP3 audio jobs.
+- Local web dashboard for video, MP3 audio, and YouTube link jobs.
 - Hebrew and English transcription for video/audio sources with `faster-whisper` when installed.
 - Hebrew to English and English to Hebrew translation with `argostranslate` when installed.
 - Transcript and SRT subtitle exports.
 - Transcript-grounded question answering.
 - Optional face blurring for video files with OpenCV YuNet.
 - Original source media copied into each job output folder.
+- YouTube links downloaded locally with `yt-dlp` before processing.
 - Processing report for each job.
 - Existing command-line face blur script still works.
 
@@ -38,6 +39,7 @@ Typical outputs include:
 ```text
 video.original.mp4
 audio.original.mp3
+youtube.original.mp4
 video.face-blurred.mp4
 transcript.en.txt
 transcript.he.txt
@@ -120,7 +122,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup-windows.ps1
 
 ## Dashboard Workflow
 
-1. Paste a local video or MP3 audio path.
+1. Paste a local video path, MP3 audio path, or YouTube link.
 2. Choose the source language, or use auto detect.
 3. Choose whether to translate the transcript.
 4. Choose whether to export subtitles.
@@ -129,7 +131,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup-windows.ps1
 7. Run processing.
 8. Review output paths and ask questions about the transcript.
 
-If your media path includes wrapping quotes, the dashboard strips them automatically.
+If your media path or YouTube link includes wrapping quotes, the dashboard strips them automatically.
+
+Only download YouTube media you have the rights or permission to process.
 
 ## Command-Line Face Blur
 
@@ -167,7 +171,7 @@ Lower thresholds may catch more side faces or small faces, but can also blur non
 
 ```mermaid
 flowchart LR
-  A["Local video or MP3 path"] --> B["Dashboard API"]
+  A["Local video, MP3, or YouTube link"] --> B["Dashboard API"]
   B --> C["Job store"]
   B --> D["Processing pipeline"]
   D --> E["Audio extraction with ffmpeg"]
